@@ -36,7 +36,7 @@ jobs:
     permissions:
       contents: read
       packages: write
-    uses: TIHLDE/workflows/.github/workflows/_ci_ghcr.yml@v1
+    uses: TIHLDE/tihlde-workflows/.github/workflows/_ci_ghcr.yml@v1
     with:
       tag-prefix: ""            # empty → tags "latest" and "<sha>"
       push: ${{ github.event_name != 'pull_request' }}
@@ -44,7 +44,7 @@ jobs:
   deploy:
     needs: build
     if: github.event_name != 'pull_request'
-    uses: TIHLDE/workflows/.github/workflows/_notify_deploy.yml@v1
+    uses: TIHLDE/tihlde-workflows/.github/workflows/_notify_deploy.yml@v1
     with:
       image: ghcr.io/${{ github.repository }}
       tag: latest
@@ -61,7 +61,7 @@ jobs:
     permissions:
       contents: read
       packages: write
-    uses: TIHLDE/workflows/.github/workflows/_ci_ghcr.yml@v1
+    uses: TIHLDE/tihlde-workflows/.github/workflows/_ci_ghcr.yml@v1
     with:
       tag-prefix: dev           # → tags "dev" and "dev-<sha>"
       push: ${{ github.event_name != 'pull_request' }}
@@ -69,7 +69,7 @@ jobs:
   deploy:
     needs: build
     if: github.event_name != 'pull_request'
-    uses: TIHLDE/workflows/.github/workflows/_notify_deploy.yml@v1
+    uses: TIHLDE/tihlde-workflows/.github/workflows/_notify_deploy.yml@v1
     with:
       image: ghcr.io/${{ github.repository }}
       tag: dev
