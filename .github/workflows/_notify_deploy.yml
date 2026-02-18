@@ -1,0 +1,88 @@
+name: "Notify deploy receiver"
+
+on:
+  workflow_call:
+    inputs:
+      repo:
+        type: string
+        default: ""
+        description: "Repo slug (defaults to current repo name if empty)"
+      image:
+        type: string
+        required: true
+        description: "Full image reference (e.g. ghcr.io/tihlde/sporty)"
+      tag:
+        type: string
+        required: true
+        description: "Image tag that was just pushed"
+      environment:
+        type: string
+        default: "prod"
+        description: "'prod' or 'dev'"
+      deploy_url:
+        type: string
+        default: "plizfix.tihlde.org"
+        description: "Deploy receiver base URL."
+    secrets:
+      DEPLOY_RECEIVER_TOKEN:
+        required: true
+        description: "Shared token for authenticating with the deploy receiver"
+
+jobs:
+  notify:
+    name: Notify deploy receiver
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve repo slug
+        id: repo
+        run: |
+          SLUG="${{ inputs.repo }}"
+          if [ -z "$SLUG" ]; then
+            SLUG="${GITHUB_REPOSITORY##*/}"
+          fi
+          # Lowercase
+          SLUG="$(echo "$SLUG" | tr '[:upper:]' '[:lower:]')"
+          echo "slug=$SLUG" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve deploy URL
+        id: url
+        run: |
+          URL="${{ inputs.deploy_url }}"
+          if [ -z "$URL" ]; then
+            echo "::error::No deploy URL provided. Set inputs.deploy_url."
+            exit 1
+          fi
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+
+      - name: Send deploy notification
+        env:
+          DEPLOY_TOKEN: ${{ secrets.DEPLOY_RECEIVER_TOKEN }}
+        run: |
+          HTTP_CODE=$(curl -s -o /tmp/response.json -w "%{http_code}" \
+            -X POST "${{ steps.url.outputs.url }}/deploy" \
+            -H "Content-Type: application/json" \
+            -H "X-Deploy-Token: ${DEPLOY_TOKEN}" \
+            -d '{
+              "repo": "${{ steps.repo.outputs.slug }}",
+              "image": "${{ inputs.image }}",
+              "tag": "${{ inputs.tag }}",
+              "environment": "${{ inputs.environment }}",
+              "deliveryId": "${{ github.run_id }}-${{ github.run_attempt }}"
+            }')
+
+          echo "HTTP status: $HTTP_CODE"
+          cat /tmp/response.json
+
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
+            echo "::error::Deploy receiver returned HTTP $HTTP_CODE"
+            exit 1
+          fi
+
+          # Also check the JSON ok field
+          OK=$(jq -r '.ok' /tmp/response.json 2>/dev/null || echo "false")
+          if [ "$OK" != "true" ]; then
+            echo "::error::Deploy receiver returned ok=false"
+            exit 1
+          fi
+
+          echo "Deploy notification accepted."
