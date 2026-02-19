@@ -7,10 +7,6 @@ on:
         type: string
         default: ""
         description: "Repo slug (defaults to current repo name if empty)"
-      image:
-        type: string
-        required: true
-        description: "Full image reference (e.g. ghcr.io/tihlde/sporty)"
       tag:
         type: string
         required: true
@@ -54,6 +50,10 @@ jobs:
           fi
           echo "url=$URL" >> "$GITHUB_OUTPUT"
 
+      - name: Normalize image name
+        id: image
+        run: echo "image=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+
       - name: Send deploy notification
         env:
           DEPLOY_TOKEN: ${{ secrets.DEPLOY_RECEIVER_TOKEN }}
@@ -64,7 +64,7 @@ jobs:
             -H "X-Deploy-Token: ${DEPLOY_TOKEN}" \
             -d '{
               "repo": "${{ steps.repo.outputs.slug }}",
-              "image": "${{ inputs.image }}",
+              "image": "${{ steps.image.outputs.image }}",
               "tag": "${{ inputs.tag }}",
               "environment": "${{ inputs.environment }}",
               "deliveryId": "${{ github.run_id }}-${{ github.run_attempt }}"
