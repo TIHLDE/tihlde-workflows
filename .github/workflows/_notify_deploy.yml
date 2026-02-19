@@ -21,7 +21,7 @@ on:
         description: "'prod' or 'dev'"
       deploy_url:
         type: string
-        default: "deploy.tihlde.org"
+        default: "https://deploy.tihlde.org"
         description: "Deploy receiver base URL."
     secrets:
       DEPLOY_RECEIVER_TOKEN:
