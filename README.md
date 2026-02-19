@@ -132,7 +132,7 @@ Sends an HTTP POST to the [Deploy Receiver](https://github.com/TIHLDE/Deploy-rec
 
 | Input | Type | Default | Description |
 |---|---|---|---|
-| `repo` | `string` | *current repo name* | Repo slug used to locate `/home/apps/<slug>/deploy.sh` on the server |
+| `repo` | `string` | *current repo name* | Repo slug used to locate `/home/debian/apps/<slug>/deploy.sh` on the server |
 | `image` | `string` | **required** | Full GHCR image reference (e.g. `ghcr.io/tihlde/blitzed`) |
 | `tag` | `string` | **required** | Image tag that was just pushed (e.g. `latest`, `dev`) |
 | `environment` | `string` | `"prod"` | `prod` or `dev` |
