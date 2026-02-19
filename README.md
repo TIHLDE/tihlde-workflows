@@ -136,7 +136,7 @@ Sends an HTTP POST to the [Deploy Receiver](https://github.com/TIHLDE/Deploy-rec
 | `image` | `string` | **required** | Full GHCR image reference (e.g. `ghcr.io/tihlde/blitzed`) |
 | `tag` | `string` | **required** | Image tag that was just pushed (e.g. `latest`, `dev`) |
 | `environment` | `string` | `"prod"` | `prod` or `dev` |
-| `deploy_url` | `string` | `"plizfix.tihlde.org"` | Base URL of the Deploy Receiver service |
+| `deploy_url` | `string` | `"deploy.tihlde.org"` | Base URL of the Deploy Receiver service |
 
 #### Secrets
 
