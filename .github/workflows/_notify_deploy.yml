@@ -1,6 +1,12 @@
 name: "Notify deploy receiver"
 on:
   workflow_call:
+    inputs:
+      image_name:
+        type: string
+        required: false
+        default: ""
+        description: "Optional custom image name (repo name by if unset)"
     secrets:
       DEPLOY_RECEIVER_TOKEN:
         required: true
@@ -14,7 +20,12 @@ jobs:
 
       - name: Normalize image name
         id: image
-        run: echo "image=ghcr.io/${GITHUB_REPOSITORY,,}" >> $GITHUB_OUTPUT
+        run: |
+          if [ -n "${{ inputs.image_name }}" ]; then
+            echo "image=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/${{ inputs.image_name }}" >> $GITHUB_OUTPUT
+          else
+            echo "image=ghcr.io/${GITHUB_REPOSITORY,,}" >> $GITHUB_OUTPUT
+          fi
 
       - name: Send deploy notification
         env:
