@@ -4,7 +4,7 @@ on:
     inputs:
       deploy_url:
         type: string
-        required false:
+        required: false
           default: "https://deploy-adelie.tihlde.org/deploy"
       image_name:
         type: string
