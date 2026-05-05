@@ -2,6 +2,10 @@ name: "Notify deploy receiver"
 on:
   workflow_call:
     inputs:
+      deploy_url:
+        type: string
+        required false:
+          default: "https://deploy-adelie.tihlde.org/deploy"
       image_name:
         type: string
         required: false
@@ -30,9 +34,10 @@ jobs:
       - name: Send deploy notification
         env:
           DEPLOY_TOKEN: ${{ secrets.DEPLOY_RECEIVER_TOKEN }}
+          DEPLOY_URL: ${{ inputs.deploy_url }}
         run: |
           HTTP_CODE=$(curl -L -s -o /tmp/response.json -w "%{http_code}" \
-            -X POST "https://deploy.tihlde.org/deploy" \
+            -X POST $DEPLOY_URL \
             -H "Content-Type: application/json" \
             -H "x-deploy-token: ${DEPLOY_TOKEN}" \
             -d "{
