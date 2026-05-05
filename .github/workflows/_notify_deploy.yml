@@ -5,7 +5,7 @@ on:
       deploy_url:
         type: string
         required: false
-          default: "https://deploy-adelie.tihlde.org/deploy"
+        default: "https://deploy-adelie.tihlde.org/deploy"
       image_name:
         type: string
         required: false
