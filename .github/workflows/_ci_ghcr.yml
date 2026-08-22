@@ -13,6 +13,14 @@ on:
         required: false
         default: ""
         description: "Optional custom image name (repo name by if unset)"
+      build_args:
+        type: string
+        required: false
+        default: ""
+        description: |
+          Optional docker build args, one `KEY=value` per line. Use it to bake
+          build metadata — a release tag, a commit sha — into the image, so the
+          running container can report what it is.
       extra_tags:
         type: string
         required: false
@@ -68,6 +76,7 @@ jobs:
         with:
           context: ${{ inputs.context }}
           file: ${{ inputs.dockerfile }}
+          build-args: ${{ inputs.build_args }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
