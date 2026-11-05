@@ -24,7 +24,7 @@ on:
 jobs:
   notify:
     runs-on: ubuntu-latest
-    # longer than the 20 minutes of polling in "Wait for deploy result"
+    # longer than the 20 minutes of polling in step "Poll for deploy result"
     timeout-minutes: 25
     steps:
       - name: Resolve repo slug
@@ -95,7 +95,7 @@ jobs:
                 echo "::error::Receiver rejected the token when checking status"
                 exit 1 ;;
               *)
-                # 502, etc. 
+                # 502, timeouts, etc say nothing about deploy status 
                 echo "Status check returned HTTP $CODE, retrying"
                 continue ;;
             esac
