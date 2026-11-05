@@ -80,22 +80,17 @@ jobs:
           DEPLOY_URL: ${{ inputs.deploy_url }}
           DELIVERY_ID: ${{ github.run_id }}-${{ github.run_attempt }}
         run: |
-          NOT_FOUND=0
           for _ in $(seq 1 120); do
             sleep 10
-            CODE=$(curl -L -s -o /tmp/status.json -w "%{http_code}" \
+            CODE=$(curl -L -s --max-time 15 -o /tmp/status.json -w "%{http_code}" \
               -H "x-deploy-token: ${DEPLOY_TOKEN}" \
               "${DEPLOY_URL%/}/${DELIVERY_ID}" || true)
 
             case "$CODE" in
-              200) NOT_FOUND=0 ;;
+              200) ;;
               404)
-                NOT_FOUND=$((NOT_FOUND + 1))
-                if [ "$NOT_FOUND" -ge 6 ]; then
-                  echo "::error::Receiver no longer knows this deploy, it may have restarted. Result unknown, check the server."
-                  exit 1
-                fi
-                continue ;;
+                echo "::error::Receiver no longer knows this deploy, it may have restarted. Result unknown, check the server."
+                exit 1 ;;
               401)
                 echo "::error::Receiver rejected the token when checking status"
                 exit 1 ;;
