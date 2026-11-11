@@ -60,7 +60,7 @@ jobs:
               \"repo\": \"${{ steps.repo.outputs.slug }}\",
               \"image\": \"${{ steps.image.outputs.image }}\",
               \"tag\": \"${DEPLOY_TAG}\",
-              \"deliveryId\": \"${{ github.run_id }}-${{ github.run_attempt }}\"
+              \"deliveryId\": \"${{ github.run_id }}-${{ github.run_attempt }}-${{ inputs.image_name || github.event.repository.name }}\"
             }")
           echo "HTTP status: $HTTP_CODE"
           cat /tmp/response.json
@@ -78,7 +78,7 @@ jobs:
         env:
           DEPLOY_TOKEN: ${{ secrets.DEPLOY_RECEIVER_TOKEN }}
           DEPLOY_URL: ${{ inputs.deploy_url }}
-          DELIVERY_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+          DELIVERY_ID: ${{ github.run_id }}-${{ github.run_attempt }}-${{ inputs.image_name || github.event.repository.name }}
         run: |
           for _ in $(seq 1 120); do
             sleep 10
