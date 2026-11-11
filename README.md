@@ -5,7 +5,7 @@ Shared [reusable GitHub Actions workflows](https://docs.github.com/en/actions/sh
 | Workflow | Purpose |
 |---|---|
 | `_ci_ghcr.yml` | Build a Docker image and push it to GitHub Container Registry (GHCR) |
-| `_notify_deploy.yml` | Notify the [Deploy Receiver](https://github.com/TIHLDE/Deploy-receiver) service to pull & restart |
+| `_notify_deploy.yml` | Tell the [Deploy Receiver](https://github.com/TIHLDE/Deploy-receiver) to deploy an image, and wait for the result |
 
 ---
 
@@ -44,11 +44,7 @@ jobs:
   deploy:
     needs: build
     if: github.event_name != 'pull_request'
-    uses: TIHLDE/tihlde-workflows/.github/workflows/_notify_deploy.yml@v1
-    with:
-      image: ghcr.io/${{ github.repository }}
-      tag: latest
-      environment: prod
+    uses: TIHLDE/tihlde-workflows/.github/workflows/_notify_deploy.yml@main
     secrets:
       DEPLOY_RECEIVER_TOKEN: ${{ secrets.DEPLOY_RECEIVER_TOKEN }}
 ```
@@ -69,11 +65,9 @@ jobs:
   deploy:
     needs: build
     if: github.event_name != 'pull_request'
-    uses: TIHLDE/tihlde-workflows/.github/workflows/_notify_deploy.yml@v1
+    uses: TIHLDE/tihlde-workflows/.github/workflows/_notify_deploy.yml@main
     with:
-      image: ghcr.io/${{ github.repository }}
       tag: dev
-      environment: dev
     secrets:
       DEPLOY_RECEIVER_TOKEN: ${{ secrets.DEPLOY_RECEIVER_TOKEN }}
 ```
@@ -126,17 +120,28 @@ permissions:
 
 ### `_notify_deploy.yml` — Notify Deploy Receiver
 
-Sends an HTTP POST to the [Deploy Receiver](https://github.com/TIHLDE/Deploy-receiver) service, which pulls the new image and restarts the container on the server.
+Sends an HTTP POST to the [Deploy Receiver](https://github.com/TIHLDE/Deploy-receiver), then checks
+the deploy's status until it finishes. The job goes red if the deploy fails, and stops waiting
+after 20 minutes.
+
+By default it deploys the short commit SHA, which `_ci_ghcr.yml` pushes, so the job must run after
+a build in the same run. Rerunning an old workflow therefore deploys that old commit.
 
 #### Inputs
 
 | Input | Type | Default | Description |
 |---|---|---|---|
-| `repo` | `string` | *current repo name* | Repo slug used to locate `/home/debian/apps/<slug>/deploy.sh` on the server |
-| `image` | `string` | **required** | Full GHCR image reference (e.g. `ghcr.io/tihlde/blitzed`) |
-| `tag` | `string` | **required** | Image tag that was just pushed (e.g. `latest`, `dev`) |
-| `environment` | `string` | `"prod"` | `prod` or `dev` |
-| `deploy_url` | `string` | `"https://deploy.tihlde.org"` | Base URL of the Deploy Receiver service |
+| `tag` | `string` | *short commit SHA* | Image tag to deploy. It must exist in GHCR, or the deploy fails without touching the running app. Use `tag: latest` to deploy without building. |
+| `image_name` | `string` | *repo name* | Image name, when it differs from the repo name. Must match the build job. |
+| `deploy_url` | `string` | `"https://deploy-king.tihlde.org/deploy"` | Full URL of the receiver's deploy endpoint, ending in `/deploy`. |
+
+Red results that need a closer look:
+
+| Message | Meaning |
+|---|---|
+| `Deploy failed in step <step>` | The deploy failed. The receiver's log on the server has the details. |
+| `Receiver no longer knows this deploy` | The receiver restarted during the deploy, so the result is unknown. The deploy may have succeeded. |
+| `No final deploy status after 20 minutes` | The deploy may still be running. Check the server. |
 
 #### Secrets
 
@@ -204,15 +209,16 @@ GitHub Actions                          Server
 └────────┬─────────┘             │                      │
          │                       │  POST /deploy        │
          ▼                       │  ├─ Validate token   │
-┌──────────────────┐             │  ├─ Check allowlist  │
-│ _notify_deploy   │──HTTP POST──▶  └─ Run deploy.sh   │
+┌──────────────────┐             │  ├─ Check apps.json  │
+│ _notify_deploy   │──HTTP POST──▶  └─ docker compose up│
 │  .yml            │             │                      │
 └──────────────────┘             └──────────────────────┘
 ```
 
 1. `_ci_ghcr.yml` builds and pushes the Docker image to GHCR.
-2. `_notify_deploy.yml` sends a POST request to the Deploy Receiver with the image name, tag, and repo slug.
-3. The Deploy Receiver validates the request and runs the repo's `deploy.sh` script, which pulls the new image and restarts the container.
+2. `_notify_deploy.yml` sends the receiver the repo, image and tag.
+3. The receiver finds the app in `apps.json`, deploys it with `docker compose`, and rolls back to the previous image if the deploy fails after the pull.
+4. `_notify_deploy.yml` checks `GET /deploy/<deliveryId>` until the deploy has finished.
 
 **Deploy Receiver repo:** <https://github.com/TIHLDE/Deploy-receiver>
 
